@@ -60,8 +60,15 @@ const Comment = ({ id }) => {
   const firestore = useFirestore();
   const firebase = useFirebase();
   const dispatch = useDispatch();
+
+  const getCommentDataNew = async (id)=>{
+    await getCommentReply(id)(firebase, firestore, dispatch);
+    await getCommentData(id)(firebase, firestore, dispatch);
+  }
+
   useState(() => {
-    getCommentData(id)(firebase, firestore, dispatch);
+    console.log(id)
+    getCommentDataNew(id)
   }, [id]);
 
   const commentsArray = useSelector(
@@ -96,7 +103,7 @@ const Comment = ({ id }) => {
     setAlignment(newAlignment);
   };
 
-  const handleSubmit = comment => {
+  const handleSubmit = async (comment) => {
     const commentData = {
       content: comment,
       replyTo: data.comment_id,
@@ -104,7 +111,10 @@ const Comment = ({ id }) => {
       createdAt: firestore.FieldValue.serverTimestamp(),
       userId: "codelabzuser"
     };
-    addComment(commentData)(firebase, firestore, dispatch);
+    console.log(commentData)
+    await addComment(commentData)(firebase, firestore, dispatch);
+    console.log(commentData.replyTo)
+    getCommentReply(data.comment_id)(firebase, firestore, dispatch);
   };
 
   return (
@@ -165,7 +175,7 @@ const Comment = ({ id }) => {
           <div style={{ margin: "10px 0 0 10px" }}>
             <Textbox type="reply" handleSubmit={handleSubmit} />
             {replies?.replies.map((id, index) => {
-              return <Comment id={id} />;
+              return <Comment id={id} key={index} />;
             })}
           </div>
         )}

@@ -28,14 +28,14 @@ const useStyles = makeStyles(() => ({
   }
 }));
 
-const CommentBox = ({ commentsArray, tutorialId }) => {
+const CommentBox = ({ commentsArray, tutorialId, getData }) => {
   const classes = useStyles();
   const firestore = useFirestore();
   const firebase = useFirebase();
   const dispatch = useDispatch();
   const [comments, setComments] = useState([]);
   const [currCommentCount, setCurrCommentCount] = useState(3);
-  const handleSubmit = comment => {
+  const handleSubmit = async (comment) => {
     const commentData = {
       content: comment,
       replyTo: tutorialId,
@@ -43,7 +43,8 @@ const CommentBox = ({ commentsArray, tutorialId }) => {
       createdAt: firestore.FieldValue.serverTimestamp(),
       userId: "codelabzuser"
     };
-    addComment(commentData)(firebase, firestore, dispatch);
+    await addComment(commentData)(firebase, firestore, dispatch);
+    getData()
   };
 
   useEffect(() => {
@@ -69,8 +70,8 @@ const CommentBox = ({ commentsArray, tutorialId }) => {
       <Grid container rowSpacing={2}>
         {comments?.map((id, index) => {
           return (
-            <Grid item xs={12}>
-              <Comment id={id} key={index} />
+            <Grid item xs={12} key={index}>
+              <Comment id={id} getData={getData} />
             </Grid>
           );
         })}

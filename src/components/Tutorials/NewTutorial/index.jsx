@@ -12,7 +12,7 @@ import { IconButton } from "@mui/material";
 import Modal from "@mui/material/Modal";
 import Avatar from "@mui/material/Avatar";
 import { makeStyles } from "@mui/styles";
-import { deepPurple } from "@mui/material/colors";
+import { deepPurple, lightBlue } from "@mui/material/colors";
 import { Typography } from "@mui/material";
 import ImageIcon from "@mui/icons-material/Image";
 import DescriptionIcon from "@mui/icons-material/Description";
@@ -32,6 +32,9 @@ const useStyles = makeStyles(theme => ({
   purple: {
     color: deepPurple[700],
     backgroundColor: deepPurple[500]
+  },
+  blue: {
+    color: lightBlue[700]
   }
 }));
 
@@ -117,11 +120,14 @@ const NewTutorial = ({ viewModal, onSidebarClick, viewCallback, active }) => {
     setVisible(viewModal);
   }, [viewModal]);
 
-  const onSubmit = formData => {
+  const onSubmit = async (formData) => {
     formData.preventDefault();
+    const imageURL = await handleImageUpload(); 
+    console.log(imageURL)
     const tutorialData = {
       ...formValue,
       created_by: userHandle,
+      featured_image: imageURL,
       is_org: userHandle !== formValue.owner,
       completed: false
     };
@@ -143,6 +149,23 @@ const NewTutorial = ({ viewModal, onSidebarClick, viewCallback, active }) => {
       ...prev,
       [name]: value
     }));
+  };
+
+  const [image, setImage] = useState(null);
+
+  const handleImageChange = (event) => {
+    const file = event.target.files[0];
+    setImage(file);
+  };
+
+  const handleImageUpload = async () => {
+    setLoading(true)
+    if (image) {
+      const storageRef = firebase.storage().ref();
+      const imageRef = storageRef.child(`images/${image.name}`);
+      await imageRef.put(image);
+      return imageRef.getDownloadURL();
+    }
   };
 
   const classes = useStyles();
@@ -226,9 +249,18 @@ const NewTutorial = ({ viewModal, onSidebarClick, viewCallback, active }) => {
             style={{ marginBottom: "2rem" }}
           />
 
-          <IconButton>
-            <ImageIcon />
-          </IconButton>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            style={{ display: "none" }}
+            id="imageInput"
+          />
+          <label htmlFor="imageInput">
+            <IconButton component="span" className={image ? classes.blue : ''}>
+              <ImageIcon />
+            </IconButton>
+          </label>
           <IconButton>
             <MovieIcon />
           </IconButton>
@@ -265,7 +297,7 @@ const NewTutorial = ({ viewModal, onSidebarClick, viewCallback, active }) => {
                 disabled={
                   formValue.title === "" ||
                   formValue.summary === "" ||
-                  formValue.owner === ""
+                  formValue.owner === "" || loading
                 }
               >
                 {loading ? "Creating..." : "Create"}

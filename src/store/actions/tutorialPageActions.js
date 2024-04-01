@@ -183,6 +183,7 @@ export const getCommentReply =
           });
           return data;
         });
+        console.log(replies)
       dispatch({
         type: actions.GET_REPLIES_SUCCESS,
         payload: { replies, comment_id: commentId }
@@ -198,18 +199,19 @@ export const addComment = comment => async (firebase, firestore, dispatch) => {
     await firestore
       .collection("cl_comments")
       .add(comment)
-      .then(docref => {
-        firestore.collection("cl_comments").doc(docref.id).update({
+      .then(async docref => {
+        await firestore.collection("cl_comments").doc(docref.id).update({
           comment_id: docref.id
         });
         if (comment.replyTo == comment.tutorial_id) {
-          firestore
+          await firestore
             .collection("tutorials")
             .doc(comment.tutorial_id)
             .update({
               comments: firebase.firestore.FieldValue.arrayUnion(docref.id)
             });
         }
+        await dispatch(getCommentReply(docref.id));
       })
       .then(() => {
         dispatch({ type: actions.ADD_COMMENT_SUCCESS });

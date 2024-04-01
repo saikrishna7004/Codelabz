@@ -12,10 +12,17 @@ import AccountCircle from "@mui/icons-material/AccountCircle";
 
 const Textbox = ({ type, handleSubmit }) => {
   const [commentText, setCommentText] = useState("");
+  const [submitting, setSubmitting] = useState(false)
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const addEmoji = emoji => {
     setCommentText(prev => prev + emoji.emoji);
     setShowEmojiPicker(false);
+  };
+  const handleCommentSubmit = async (commentText) => {
+    setSubmitting(true)
+    await handleSubmit(commentText);
+    setSubmitting(false)
+    setCommentText("");
   };
   return (
     <Box
@@ -70,7 +77,8 @@ const Textbox = ({ type, handleSubmit }) => {
       <Button
         variant="contained"
         disableElevation
-        onClick={() => handleSubmit(commentText)}
+        disabled={submitting}
+        onClick={() => handleCommentSubmit(commentText)}
       >
         <Send />
       </Button>

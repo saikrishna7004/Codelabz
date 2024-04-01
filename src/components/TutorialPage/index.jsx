@@ -30,10 +30,12 @@ function TutorialPage({ background = "white", textColor = "black" }) {
   const dispatch = useDispatch();
   const firebase = useFirebase();
   const firestore = useFirestore();
+  const getData = async ()=>{
+    await getTutorialData(id)(firebase, firestore, dispatch);
+    await getTutorialSteps(id)(firebase, firestore, dispatch);
+  }
   useEffect(() => {
-    getTutorialData(id)(firebase, firestore, dispatch);
-    getTutorialSteps(id)(firebase, firestore, dispatch);
-    return () => {};
+    getData()
   }, []);
   const tutorial = useSelector(
     ({
@@ -112,7 +114,7 @@ function TutorialPage({ background = "white", textColor = "black" }) {
         >
           <PostDetails details={postDetails} />
           <Tutorial steps={steps} />
-          <CommentBox commentsArray={tutorial?.comments} tutorialId={id} />
+          <CommentBox commentsArray={tutorial?.comments} tutorialId={id} getData={getData} />
         </Grid>
 
         <Grid
