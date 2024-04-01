@@ -7,6 +7,8 @@ const initialState = {
   replies: []
 };
 
+let existingIndex;
+
 const CommentReducer = (state = initialState, { type, payload }) => {
   switch (type) {
     case actions.GET_COMMENT_DATA_START:
@@ -16,7 +18,7 @@ const CommentReducer = (state = initialState, { type, payload }) => {
       };
 
     case actions.GET_COMMENT_DATA_SUCCESS:
-      console.log(payload)
+      console.log(payload);
       return {
         ...state,
         loading: false,
@@ -37,37 +39,39 @@ const CommentReducer = (state = initialState, { type, payload }) => {
         loading: true
       };
 
-      case actions.GET_REPLIES_SUCCESS:
-        const existingIndex = state.replies.findIndex(reply => reply.comment_id === payload.comment_id);
-        console.log(existingIndex, "existing")
-      
-        if (existingIndex !== -1) {
-          const updatedReplies = [...state.replies];
-          updatedReplies[existingIndex] = {
-            ...updatedReplies[existingIndex],
-            replies: payload.replies
-          };
+    case actions.GET_REPLIES_SUCCESS:
+      existingIndex = state.replies.findIndex(
+        reply => reply.comment_id === payload.comment_id
+      );
+      console.log(existingIndex, "existing");
 
-          console.log("update 1", updatedReplies)
-          
-          return {
-            ...state,
-            loading: false,
-            replies: updatedReplies
-          };
-        } else {
-          const newReplies = {
-            comment_id: payload.comment_id,
-            replies: payload.replies
-          };
-          console.log("update 2", [...state.replies, newReplies]);
-      
-          return {
-            ...state,
-            loading: false,
-            replies: [...state.replies, newReplies]
-          };
-        }
+      if (existingIndex !== -1) {
+        const updatedReplies = [...state.replies];
+        updatedReplies[existingIndex] = {
+          ...updatedReplies[existingIndex],
+          replies: payload.replies
+        };
+
+        console.log("update 1", updatedReplies);
+
+        return {
+          ...state,
+          loading: false,
+          replies: updatedReplies
+        };
+      } else {
+        const newReplies = {
+          comment_id: payload.comment_id,
+          replies: payload.replies
+        };
+        console.log("update 2", [...state.replies, newReplies]);
+
+        return {
+          ...state,
+          loading: false,
+          replies: [...state.replies, newReplies]
+        };
+      }
 
     case actions.ADD_COMMENT_START:
       return {

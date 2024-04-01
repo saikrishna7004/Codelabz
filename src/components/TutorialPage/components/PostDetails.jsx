@@ -18,6 +18,9 @@ import { useFirebase, useFirestore } from "react-redux-firebase";
 import { getUserProfileData } from "../../../store/actions";
 import { HashLink } from "react-router-hash-link";
 import { useParams } from "react-router-dom";
+import { addTutorialLike } from "../../../store/actions/tutorialPageActions";
+import { getTutorialVote } from "../../../store/actions/tutorialPageActions";
+
 const useStyles = makeStyles(() => ({
   container: {
     padding: "20px",
@@ -41,17 +44,31 @@ const useStyles = makeStyles(() => ({
   }
 }));
 
-const PostDetails = ({ details }) => {
+const PostDetails = ({ details, getData }) => {
   const dispatch = useDispatch();
   const firebase = useFirebase();
   const firestore = useFirestore();
   const [alignment, setAlignment] = React.useState("left");
-  const [count, setCount] = useState(details.upVote - details.downVote || 0);
+  const [count, setCount] = useState(details?.upVote - details?.downVote || 0);
+  const [voteStatus, setVoteStatus] = useState(0);
   const { id } = useParams();
 
   useEffect(() => {
     getUserProfileData(details.user)(firebase, firestore, dispatch);
+    getTutorialVote(details.user, id)(firebase, firestore, dispatch);
   }, [details]);
+
+  const userVote = useSelector(
+    ({
+      tutorialPage: {
+        userVote: { userVote: data }
+      }
+    }) => data
+  );
+
+  useEffect(() => {
+    setVoteStatus(userVote);
+  }, [userVote]);
 
   const user = useSelector(
     ({
@@ -61,16 +78,42 @@ const PostDetails = ({ details }) => {
     }) => data
   );
 
+  const upVotes = useSelector(
+    ({
+      tutorialPage: {
+        post: { data }
+      }
+    }) => data?.upVotes || 0
+  );
+
+  const downVotes = useSelector(
+    ({
+      tutorialPage: {
+        post: { data }
+      }
+    }) => data?.downVotes || 0
+  );
+
+  useEffect(() => {
+    setCount(upVotes - downVotes || 0);
+  }, [upVotes, downVotes]);
+
   const getTime = timestamp => {
     return timestamp.toDate().toDateString();
   };
 
-  const handleIncrement = () => {
-    setCount(count + 1);
+  const handleIncrement = async () => {
+    setVoteStatus(1);
+    await addTutorialLike(details.user, id, 1)(firebase, firestore, dispatch);
+    await getData();
+    await getTutorialVote(details.user, id)(firebase, firestore, dispatch);
   };
 
-  const handleDecrement = () => {
-    setCount(count - 1);
+  const handleDecrement = async () => {
+    setVoteStatus(-1);
+    await addTutorialLike(details.user, id, -1)(firebase, firestore, dispatch);
+    await getData();
+    await getTutorialVote(details.user, id)(firebase, firestore, dispatch);
   };
 
   const handleAlignment = (event, newAlignment) => {
@@ -87,11 +130,12 @@ const PostDetails = ({ details }) => {
                 <Grid item>
                   <Typography sx={{ fontWeight: "700", fontSize: "1.2rem" }}>
                     {details?.title}
-                    {details?.tag?.map(tag => (
+                    {details?.tag?.map((tag, i) => (
                       <Chip
                         label={tag}
                         variant="outlined"
                         className={classes.chip}
+                        key={i}
                       />
                     ))}
                   </Typography>
@@ -121,6 +165,7 @@ const PostDetails = ({ details }) => {
                         onClick={handleIncrement}
                         value="left"
                         aria-label="left aligned"
+                        selected={voteStatus == 1}
                       >
                         <KeyboardArrowUpIcon />
                         <span>{count}</span>
@@ -130,6 +175,7 @@ const PostDetails = ({ details }) => {
                         onClick={handleDecrement}
                         value="center"
                         aria-label="centered"
+                        selected={voteStatus == -1}
                       >
                         <KeyboardArrowDownIcon />
                       </ToggleButton>

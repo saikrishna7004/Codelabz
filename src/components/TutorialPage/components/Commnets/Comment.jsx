@@ -27,7 +27,9 @@ import { useFirebase, useFirestore } from "react-redux-firebase";
 import {
   getCommentData,
   getCommentReply,
-  addComment
+  addComment,
+  addCommentLike,
+  getCommentVote
 } from "../../../../store/actions/tutorialPageActions";
 const useStyles = makeStyles(() => ({
   container: {
@@ -52,7 +54,7 @@ const useStyles = makeStyles(() => ({
   }
 }));
 
-const Comment = ({ id }) => {
+const Comment = ({ id, getData }) => {
   const classes = useStyles();
   const [showReplyfield, setShowReplyfield] = useState(false);
   const [alignment, setAlignment] = React.useState("left");
@@ -60,15 +62,16 @@ const Comment = ({ id }) => {
   const firestore = useFirestore();
   const firebase = useFirebase();
   const dispatch = useDispatch();
+  const [voteStatus, setVoteStatus] = useState(0);
 
-  const getCommentDataNew = async (id)=>{
+  const getCommentDataNew = async id => {
     await getCommentReply(id)(firebase, firestore, dispatch);
     await getCommentData(id)(firebase, firestore, dispatch);
-  }
+  };
 
   useState(() => {
-    console.log(id)
-    getCommentDataNew(id)
+    console.log(id);
+    getCommentDataNew(id);
   }, [id]);
 
   const commentsArray = useSelector(
@@ -81,6 +84,8 @@ const Comment = ({ id }) => {
 
   const [data] = commentsArray.filter(comment => comment.comment_id == id);
 
+  const { upVotes = 0, downVotes = 0 } = data || {};
+
   const repliesArray = useSelector(
     ({
       tutorialPage: {
@@ -89,32 +94,52 @@ const Comment = ({ id }) => {
     }) => replies
   );
 
+  const user = useSelector(
+    ({
+      profile: {
+        user: { data }
+      }
+    }) => data
+  );
+
+  useEffect(() => {
+    setCount(upVotes - downVotes || 0);
+  }, [upVotes, downVotes]);
+
   const [replies] = repliesArray.filter(replies => replies.comment_id == id);
 
-  const handleIncrement = () => {
-    setCount(count + 1);
+  const handleIncrement = async () => {
+    setVoteStatus(1);
+    await addCommentLike("codelabzuser", id, 1)(firebase, firestore, dispatch);
+    await getData();
+    await getCommentVote("codelabzuser", id)(firebase, firestore, dispatch);
   };
 
-  const handleDecrement = () => {
-    setCount(count - 1);
+  const handleDecrement = async () => {
+    setVoteStatus(-1);
+    await addCommentLike("codelabzuser", id, -1)(firebase, firestore, dispatch);
+    await getData();
+    await getCommentVote("codelabzuser", id)(firebase, firestore, dispatch);
   };
 
   const handleAlignment = (event, newAlignment) => {
     setAlignment(newAlignment);
   };
 
-  const handleSubmit = async (comment) => {
+  const handleSubmit = async comment => {
     const commentData = {
       content: comment,
       replyTo: data.comment_id,
       tutorial_id: data.tutorial_id,
       createdAt: firestore.FieldValue.serverTimestamp(),
-      userId: "codelabzuser"
+      userId: "codelabzuser",
+      upVotes: 0,
+      downVotes: 0
     };
-    console.log(commentData)
+    console.log(commentData);
     await addComment(commentData)(firebase, firestore, dispatch);
-    console.log(commentData.replyTo)
-    getCommentReply(data.comment_id)(firebase, firestore, dispatch);
+    console.log(commentData.replyTo);
+    await getCommentReply(id)(firebase, firestore, dispatch);
   };
 
   return (
@@ -152,6 +177,7 @@ const Comment = ({ id }) => {
                   onClick={handleIncrement}
                   value="left"
                   aria-label="left aligned"
+                  selected={voteStatus == 1}
                 >
                   <KeyboardArrowUpIcon />
                   <span>{count}</span>
@@ -161,6 +187,7 @@ const Comment = ({ id }) => {
                   onClick={handleDecrement}
                   value="center"
                   aria-label="centered"
+                  selected={voteStatus == -1}
                 >
                   <KeyboardArrowDownIcon />
                 </ToggleButton>

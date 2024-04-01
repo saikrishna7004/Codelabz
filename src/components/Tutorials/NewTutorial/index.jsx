@@ -120,10 +120,10 @@ const NewTutorial = ({ viewModal, onSidebarClick, viewCallback, active }) => {
     setVisible(viewModal);
   }, [viewModal]);
 
-  const onSubmit = async (formData) => {
+  const onSubmit = async formData => {
     formData.preventDefault();
-    const imageURL = await handleImageUpload(); 
-    console.log(imageURL)
+    const imageURL = await handleImageUpload();
+    console.log(imageURL);
     const tutorialData = {
       ...formValue,
       created_by: userHandle,
@@ -153,13 +153,13 @@ const NewTutorial = ({ viewModal, onSidebarClick, viewCallback, active }) => {
 
   const [image, setImage] = useState(null);
 
-  const handleImageChange = (event) => {
+  const handleImageChange = event => {
     const file = event.target.files[0];
     setImage(file);
   };
 
   const handleImageUpload = async () => {
-    setLoading(true)
+    setLoading(true);
     if (image) {
       const storageRef = firebase.storage().ref();
       const imageRef = storageRef.child(`images/${image.name}`);
@@ -257,7 +257,7 @@ const NewTutorial = ({ viewModal, onSidebarClick, viewCallback, active }) => {
             id="imageInput"
           />
           <label htmlFor="imageInput">
-            <IconButton component="span" className={image ? classes.blue : ''}>
+            <IconButton component="span" className={image ? classes.blue : ""}>
               <ImageIcon />
             </IconButton>
           </label>
@@ -297,7 +297,8 @@ const NewTutorial = ({ viewModal, onSidebarClick, viewCallback, active }) => {
                 disabled={
                   formValue.title === "" ||
                   formValue.summary === "" ||
-                  formValue.owner === "" || loading
+                  formValue.owner === "" ||
+                  loading
                 }
               >
                 {loading ? "Creating..." : "Create"}

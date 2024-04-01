@@ -183,7 +183,7 @@ export const getCommentReply =
           });
           return data;
         });
-        console.log(replies)
+      console.log(replies);
       dispatch({
         type: actions.GET_REPLIES_SUCCESS,
         payload: { replies, comment_id: commentId }
@@ -220,3 +220,205 @@ export const addComment = comment => async (firebase, firestore, dispatch) => {
     dispatch({ type: actions.ADD_COMMENT_FAILED, payload: e.message });
   }
 };
+
+export const addTutorialLike =
+  (uid, tut_id, value) => async (firebase, firestore, dispatch) => {
+    try {
+      dispatch({ type: actions.ADD_TUTORIAL_LIKE_START });
+
+      const existingLikeRef = await firestore
+        .collection("tutorial_likes")
+        .where("uid", "==", uid)
+        .where("tut_id", "==", tut_id)
+        .get();
+
+      if (!existingLikeRef.empty) {
+        const existingLike = existingLikeRef.docs[0];
+        const existingLikeValue = existingLike.data().value;
+
+        if (existingLikeValue === value) {
+          dispatch({ type: actions.ADD_TUTORIAL_LIKE_SUCCESS });
+          return;
+        }
+
+        const tutorialRef = firestore.collection("tutorials").doc(tut_id);
+        const tutorialDoc = await tutorialRef.get();
+        const currentUpVotes = tutorialDoc.data().upVotes || 0;
+        const currentDownVotes = tutorialDoc.data().downVotes || 0;
+
+        let updatedUpVotes = currentUpVotes;
+        let updatedDownVotes = currentDownVotes;
+
+        if (value === 1) {
+          updatedUpVotes += 1;
+          if (existingLikeValue === -1) {
+            updatedDownVotes -= 1;
+          }
+        } else {
+          updatedDownVotes += 1;
+          if (existingLikeValue === 1) {
+            updatedUpVotes -= 1;
+          }
+        }
+
+        await Promise.all([
+          tutorialRef.update({
+            upVotes: updatedUpVotes,
+            downVotes: updatedDownVotes
+          }),
+          existingLike.ref.update({ value })
+        ]);
+      } else {
+        await Promise.all([
+          firestore.collection("tutorial_likes").add({ uid, tut_id, value }),
+          firestore
+            .collection("tutorials")
+            .doc(tut_id)
+            .update({
+              upVotes: firebase.firestore.FieldValue.increment(
+                value === 1 ? 1 : 0
+              ),
+              downVotes: firebase.firestore.FieldValue.increment(
+                value === -1 ? 1 : 0
+              )
+            })
+        ]);
+      }
+
+      dispatch({ type: actions.ADD_TUTORIAL_LIKE_SUCCESS });
+    } catch (error) {
+      dispatch({
+        type: actions.ADD_TUTORIAL_LIKE_FAILED,
+        payload: error.message
+      });
+    }
+  };
+
+export const addCommentLike =
+  (uid, comment_id, value) => async (firebase, firestore, dispatch) => {
+    try {
+      dispatch({ type: actions.ADD_COMMENT_LIKE_START });
+
+      const existingLikeRef = await firestore
+        .collection("comment_likes")
+        .where("uid", "==", uid)
+        .where("comment_id", "==", comment_id)
+        .get();
+
+      if (!existingLikeRef.empty) {
+        const existingLike = existingLikeRef.docs[0];
+        const existingLikeValue = existingLike.data().value;
+
+        if (existingLikeValue === value) {
+          dispatch({ type: actions.ADD_COMMENT_LIKE_SUCCESS });
+          return;
+        }
+
+        const commentRef = firestore.collection("cl_comments").doc(comment_id);
+        const commentDoc = await commentRef.get();
+        const currentLikes = commentDoc.data().likes || 0;
+        const currentUpVotes = commentDoc.data().upVotes || 0;
+        const currentDownVotes = commentDoc.data().downVotes || 0;
+
+        let updatedLikes = currentLikes + value - existingLikeValue;
+        let updatedUpVotes = currentUpVotes;
+        let updatedDownVotes = currentDownVotes;
+
+        if (value === 1) {
+          updatedUpVotes += 1;
+          if (existingLikeValue === -1) {
+            updatedDownVotes -= 1;
+          }
+        } else {
+          updatedDownVotes += 1;
+          if (existingLikeValue === 1) {
+            updatedUpVotes -= 1;
+          }
+        }
+
+        await Promise.all([
+          commentRef.update({
+            likes: updatedLikes,
+            upVotes: updatedUpVotes,
+            downVotes: updatedDownVotes
+          }),
+          existingLike.ref.update({ value })
+        ]);
+      } else {
+        await Promise.all([
+          firestore.collection("comment_likes").add({ uid, comment_id, value }),
+          firestore
+            .collection("cl_comments")
+            .doc(comment_id)
+            .update({
+              likes: firebase.firestore.FieldValue.increment(value),
+              upVotes: firebase.firestore.FieldValue.increment(
+                value === 1 ? 1 : 0
+              ),
+              downVotes: firebase.firestore.FieldValue.increment(
+                value === -1 ? 1 : 0
+              )
+            })
+        ]);
+      }
+
+      dispatch({ type: actions.ADD_COMMENT_LIKE_SUCCESS });
+    } catch (error) {
+      dispatch({
+        type: actions.ADD_COMMENT_LIKE_FAILED,
+        payload: error.message
+      });
+    }
+  };
+
+export const getTutorialVote =
+  (uid, tut_id) => async (firebase, firestore, dispatch) => {
+    try {
+      dispatch({ type: actions.GET_TUTORIAL_VOTE_START });
+
+      const existingVoteRef = await firestore
+        .collection("tutorial_likes")
+        .where("uid", "==", uid)
+        .where("tut_id", "==", tut_id)
+        .get();
+
+      let vote = 0;
+
+      if (!existingVoteRef.empty) {
+        vote = existingVoteRef.docs[0].data().value;
+      }
+
+      dispatch({ type: actions.GET_TUTORIAL_VOTE_SUCCESS, payload: vote });
+    } catch (error) {
+      dispatch({
+        type: actions.GET_TUTORIAL_VOTE_FAILED,
+        payload: error.message
+      });
+    }
+  };
+
+export const getCommentVote =
+  (uid, comment_id) => async (firebase, firestore, dispatch) => {
+    try {
+      dispatch({ type: actions.GET_COMMENT_VOTE_START });
+
+      const existingVoteRef = await firestore
+        .collection("comment_likes")
+        .where("uid", "==", uid)
+        .where("comment_id", "==", comment_id)
+        .get();
+
+      let vote = 0;
+
+      if (!existingVoteRef.empty) {
+        vote = existingVoteRef.docs[0].data().value;
+      }
+
+      dispatch({ type: actions.GET_COMMENT_VOTE_SUCCESS, payload: vote });
+    } catch (error) {
+      dispatch({
+        type: actions.GET_COMMENT_VOTE_FAILED,
+        payload: error.message
+      });
+    }
+  };

@@ -3,7 +3,10 @@ import { makeStyles } from "@mui/styles";
 import React, { useEffect, useState } from "react";
 import Textbox from "./Textbox";
 import Comment from "./Comment";
-import { addComment } from "../../../../store/actions/tutorialPageActions";
+import {
+  addComment,
+  getCommentReply
+} from "../../../../store/actions/tutorialPageActions";
 import { useDispatch, useSelector } from "react-redux";
 import { useFirebase, useFirestore } from "react-redux-firebase";
 const useStyles = makeStyles(() => ({
@@ -35,23 +38,25 @@ const CommentBox = ({ commentsArray, tutorialId, getData }) => {
   const dispatch = useDispatch();
   const [comments, setComments] = useState([]);
   const [currCommentCount, setCurrCommentCount] = useState(3);
-  const handleSubmit = async (comment) => {
+  const handleSubmit = async comment => {
     const commentData = {
       content: comment,
       replyTo: tutorialId,
       tutorial_id: tutorialId,
       createdAt: firestore.FieldValue.serverTimestamp(),
-      userId: "codelabzuser"
+      userId: "codelabzuser",
+      upVotes: 0,
+      downVotes: 0
     };
     await addComment(commentData)(firebase, firestore, dispatch);
-    getData()
+    await getData();
+    console.log(commentData.replyTo);
+    await getCommentReply(tutorialId)(firebase, firestore, dispatch);
   };
 
   useEffect(() => {
     setComments(commentsArray?.slice(0, currCommentCount));
   }, [currCommentCount, commentsArray]);
-
-  console.log(commentsArray, comments, currCommentCount);
 
   const increaseCommentCount = () => {
     setCurrCommentCount(state => state + 3);
